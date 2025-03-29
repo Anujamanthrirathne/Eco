@@ -2,9 +2,12 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import { jsPDF } from "jspdf"; // Import jsPDF
+import Modal from "react-modal"; // Import Modal
 
 const CropList = () => {
   const [crops, setCrops] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCropId, setSelectedCropId] = useState(null); // Store the crop ID to be deleted
   const navigate = useNavigate(); // Initialize navigate function
 
   useEffect(() => {
@@ -13,18 +16,17 @@ const CropList = () => {
 
   const fetchCrops = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:4000/api/crop/all-crops"
-      );
+      const response = await axios.get("http://localhost:4000/api/crop/all-crops");
       setCrops(response.data.crops);
     } catch (error) {
       console.error("Error fetching crops:", error);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async () => {
     try {
-      await axios.delete(`http://localhost:4000/api/crop/delete-crop/${id}`);
+      await axios.delete(`http://localhost:4000/api/crop/delete-crop/${selectedCropId}`);
+      setIsModalOpen(false); // Close the modal after deleting
       fetchCrops(); // Refresh the list after deletion
     } catch (error) {
       console.error("Error deleting crop:", error);
@@ -42,23 +44,23 @@ const CropList = () => {
   // PDF Generation Function
   const generatePDF = () => {
     const doc = new jsPDF();
-  
+
     // Add Header Image
     const headerImage =
       "https://th.bing.com/th/id/OIP.huTNLBYhVjudN7Jnn8UmgwHaEk?rs=1&pid=ImgDetMain";
     doc.addImage(headerImage, "JPEG", 10, 10, 180, 40); // Add image at the top
-  
+
     // Add Company Name and Address
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0); // Set black color for text
     doc.text("Eco", 20, 60); // Company Name
     doc.setFontSize(12);
     doc.text("1234 EcoPro Street, Colombo, Sri Lanka", 20, 70); // Company Address
-  
+
     // Add Invoice Title
     doc.setFontSize(18);
     doc.text("Invoice - Crop List", 20, 90);
-  
+
     // Add Table Headers
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0); // Set black color for text
@@ -67,11 +69,11 @@ const CropList = () => {
     doc.text("Type", headerX[1], 110);
     doc.text("Location", headerX[2], 110);
     doc.text("Harvest Date", headerX[3], 110);
-  
+
     // Line under headers for separation
     doc.setLineWidth(0.5);
     doc.line(20, 115, 210, 115); // Draw a horizontal line
-  
+
     // Add Crops Data to PDF
     let yPosition = 120; // Start adding data after the line
     crops.forEach((crop) => {
@@ -82,12 +84,22 @@ const CropList = () => {
       doc.text(new Date(crop.estimatedHarvestDate).toLocaleDateString(), headerX[3], yPosition); // Harvest Date in right column
       yPosition += 10; // Add some space between rows
     });
-  
+
     // Save PDF
     doc.save("crops_invoice.pdf");
   };
-  
-  
+
+  // Modal configuration for deleting
+  const openDeleteModal = (id) => {
+    setSelectedCropId(id); // Set the selected crop ID to be deleted
+    setIsModalOpen(true); // Open the modal
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false); // Close the modal
+    setSelectedCropId(null); // Reset the selected crop ID
+  };
+
   return (
     <div className="container mx-auto p-6 mb-40 mt-10">
       <div className="flex justify-between items-center mb-6">
@@ -150,7 +162,7 @@ const CropList = () => {
                   Update
                 </button>
                 <button
-                  onClick={() => handleDelete(crop._id)}
+                  onClick={() => openDeleteModal(crop._id)} // Open delete confirmation modal
                   className="bg-black text-green-400 py-1 px-3 rounded-md hover:bg-gray-700"
                 >
                   Delete
@@ -160,6 +172,31 @@ const CropList = () => {
           ))}
         </tbody>
       </table>
+
+      {/* Modal for Delete Confirmation */}
+      <Modal
+        isOpen={isModalOpen}
+        onRequestClose={closeModal}
+        className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 p-6 rounded-lg shadow-lg w-[90%] max-w-[400px] bg-white dark:bg-gray-800"
+      >
+        <h1 className="text-center mb-6 text-lg font-semibold text-gray-800">
+          Are you sure you want to delete this Crop?
+        </h1>
+        <div className="flex justify-between mt-8">
+          <button
+            onClick={handleDelete}
+            className="bg-red-600 text-white py-2 px-4 rounded-md"
+          >
+            Yes, Delete
+          </button>
+          <button
+            onClick={closeModal}
+            className="bg-gray-300 text-gray-700 py-2 px-4 rounded-md"
+          >
+            Cancel
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

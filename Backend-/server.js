@@ -19,8 +19,9 @@ const app = express();
 // Middleware
 app.use(express.json({ limit: '50mb' }));  // Increase limit as needed
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// app.use(cors());
 
-// Setup CORS
+//Setup CORS
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5173'],  // Your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
